@@ -26,9 +26,11 @@ public class CameraController : MonoBehaviour
     private float _actualPanSpeed;
 
     [SerializeField] private LayerMask terrainLayer;
+    public bool freezeCamera;
 
     private void Start()
     {
+        freezeCamera = true;
         _actualPanSpeed = panSpeed;
         var transform1 = transform;
         _parentTransform = transform1.parent;
@@ -36,6 +38,8 @@ public class CameraController : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (freezeCamera) return;
+        
         Move();
 
         if (targetFollow)

@@ -9566,7 +9566,7 @@ Transform:
   m_GameObject: {fileID: 155500}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_Children:
   - {fileID: 499182}
   - {fileID: 493990}
@@ -9653,7 +9653,6 @@ MonoBehaviour:
   unitHealthBarPrefab: {fileID: 1976739105769730178, guid: 15a56eb3aaf5e5a44938d09cd70ee73e,
     type: 3}
   healthBarOffset: {x: 0, y: 2, z: 0}
-  teamCamera: {fileID: 0}
   teamId: 0
   maxHitPoints: 100
   moveSpeed:
@@ -9668,6 +9667,8 @@ MonoBehaviour:
     baseValue: 1
   canGather: 1
   inResourceRange: 0
+  inBuildingRange: 0
+  populationCost: 0
 --- !u!195 &5708735770714800189
 NavMeshAgent:
   m_ObjectHideFlags: 0

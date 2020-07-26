@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 5236566383252637465}
   - component: {fileID: 2136593393}
   - component: {fileID: 39060595797305250}
+  - component: {fileID: 3319739260004550454}
   m_Layer: 0
   m_Name: GameRTSController
   m_TagString: Player
@@ -28,7 +29,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 839371128889750595}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
@@ -47,7 +48,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0aaf0e58e9a12eb4baf67f5ba717c575, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  uiManager: {fileID: 0}
   selectionBox: {fileID: 0}
   unitSelectionLimit: 20
   mouseHoldInterval: 0.2
@@ -72,11 +72,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   teamId: 0
+  startingResources: 50
   teamUnits: []
-  availableBuildings:
-  - {fileID: 3440487229173501154, guid: 74381c671b2762840b0c9b7e130ef5b4, type: 3}
-  - {fileID: 4320798140100202070, guid: 422b75253ecb02247959abe02608dd2f, type: 3}
-  - {fileID: 8781906681380082957, guid: e2ed0760d89c5274c8f0ae0e686ba7bf, type: 3}
 --- !u!114 &5236566383252637465
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -113,6 +110,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d8497d77bc0f2a54b90c344cf128613f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &3319739260004550454
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 839371128889750595}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c188434b12e9bb543a171cf2133bd7f1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  selectedUnitsTextNode: {fileID: 0}
+  foodResourceText: {fileID: 0}
+  stoneResourceText: {fileID: 0}
+  woodResourceText: {fileID: 0}
+  populationResourceText: {fileID: 0}
+  buildingMenu: {fileID: 0}
+  blacksmithUi: {fileID: 0}
+  houseUi: {fileID: 0}
+  sawmillUi: {fileID: 0}
+  farmUi: {fileID: 0}
+  helpUi: {fileID: 0}
 --- !u!1 &7312282793421198112
 GameObject:
   m_ObjectHideFlags: 0
@@ -126,6 +146,8 @@ GameObject:
   - component: {fileID: 7312282793421198118}
   - component: {fileID: 7312282793421198113}
   - component: {fileID: 7312282793421198117}
+  - component: {fileID: 850619635}
+  - component: {fileID: 850619634}
   m_Layer: 0
   m_Name: Camera
   m_TagString: MainCamera
@@ -140,13 +162,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7312282793421198112}
-  m_LocalRotation: {x: 0.5, y: 0, z: 0, w: 0.8660254}
+  m_LocalRotation: {x: 0.17364816, y: 0, z: 0, w: 0.9848078}
   m_LocalPosition: {x: 0, y: 0, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 7312282793929629725}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 60, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 20, y: 0, z: 0}
 --- !u!20 &7312282793421198119
 Camera:
   m_ObjectHideFlags: 0
@@ -224,17 +246,47 @@ MonoBehaviour:
   rotateSpeed: 100
   invertMousePan: 0
   useEdgePanning: 0
-  panLimit: {x: 30, y: 30}
+  panLimit: {x: 100, y: 100}
   targetFollow: {fileID: 0}
   targetOffset: {x: 0, y: -10}
   followingSpeed: 5
   zoomSpeed: 50
   invertZoom: 0
-  minCameraAltitude: 20
+  minCameraAltitude: 2
   maxCameraAltitude: 120
   terrainLayer:
     serializedVersion: 2
     m_Bits: 256
+  freezeCamera: 0
+--- !u!54 &850619635
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7312282793421198112}
+  serializedVersion: 2
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_UseGravity: 0
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 126
+  m_CollisionDetection: 0
+--- !u!65 &850619634
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7312282793421198112}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &7312282793929629724
 GameObject:
   m_ObjectHideFlags: 0

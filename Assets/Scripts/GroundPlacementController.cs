@@ -1,18 +1,29 @@
-﻿using UnityEngine;
+﻿using BuildingScripts;
+using TMPro;
+using UnityEngine;
 using UnityEngine.AI;
 
 public class GroundPlacementController : MonoBehaviour
 {
+    private static GroundPlacementController _instance;
+ 
+    public static GroundPlacementController Instance
+    {
+        get
+        {
+            if (_instance) return _instance;
+            _instance = FindObjectOfType(typeof(GroundPlacementController)) as GroundPlacementController;
+
+            if (_instance != null) return _instance;
+            Debug.LogError("There needs to be one active GroundPlacementController script on a GameObject in your scene.");
+            return null;
+        }
+    }
+    
     private GameObject _currentPlaceableObject;
     private float _objectRotation;
     private bool _isPlacing;
-    private InputManager _inputManager;
     private bool _isPositionValid;
-
-    private void Start()
-    {
-        _inputManager = GetComponent<InputManager>();
-    }
 
     private void Update()
     {
@@ -32,26 +43,32 @@ public class GroundPlacementController : MonoBehaviour
     public void StartPlacingObject(GameObject objectToPlace)
     {
         _isPlacing = true;
-        _currentPlaceableObject = Instantiate(objectToPlace);
+        _currentPlaceableObject = objectToPlace;
         _currentPlaceableObject.transform.Rotate(-90f, 0, 0);
     }
 
     private void MoveCurrentObjectToMouse()
     {
-        var ray = _inputManager.gameCamera.ScreenPointToRay(Input.mousePosition);
+        var ray = InputManager.Instance.gameCamera.ScreenPointToRay(Input.mousePosition);
 
-        if (!Physics.Raycast(ray, out var hitInfo, int.MaxValue, _inputManager.terrainLayer)) return;
+        if (!Physics.Raycast(ray, out var hitInfo, int.MaxValue, InputManager.Instance.terrainLayer)) return;
         if (hitInfo.distance > 60f) SetPositionValid(false);
-        CheckValidPosition();
+        CheckValidPosition(hitInfo);
         _currentPlaceableObject.transform.position = hitInfo.point;
         _currentPlaceableObject.transform.rotation = Quaternion.FromToRotation(Vector3.forward, hitInfo.normal);
     }
 
-    private void CheckValidPosition()
+    private void CheckValidPosition(RaycastHit hitInfo)
     {
-        var angles = _currentPlaceableObject.transform.rotation.eulerAngles;
         
-        if (!((angles.x <= 270 + 40 && angles.x >= 270 - 40) && (angles.z <= 40 || angles.z >= 320)))
+        var position = _currentPlaceableObject.transform.position;
+        var angle = Vector3.Angle(hitInfo.normal, position); 
+        if (angle < 75 || angle > 115)
+        {
+            SetPositionValid(false);
+            return;
+        }
+        if (_currentPlaceableObject.GetComponent<Building>().Collisions > 0)
         {
             SetPositionValid(false);
             return;
@@ -61,7 +78,7 @@ public class GroundPlacementController : MonoBehaviour
 
     private void SetPositionValid(bool isValid)
     {
-        _currentPlaceableObject.GetComponent<Renderer>().material.color = isValid ? Color.white : Color.red;
+        _currentPlaceableObject.GetComponentInChildren<Renderer>().material.color = isValid ? Color.white : Color.red;
         _isPositionValid = isValid;
     }
 
@@ -86,6 +103,11 @@ public class GroundPlacementController : MonoBehaviour
             building.SetBuildingStage(0);
         if (_currentPlaceableObject.TryGetComponent<NavMeshObstacle>(out var obstacle))
             obstacle.enabled = true;
+        
+        foreach (var buildingCost in building.buildingCosts)
+             TeamManager.Instance.RemoveResource(buildingCost.resourceType, buildingCost.cost);
+
+        building.preview = false;
         _currentPlaceableObject = null;
     }
 }

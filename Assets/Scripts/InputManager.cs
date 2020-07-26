@@ -1,12 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using CameraSystem;
-using TMPro;
+using BuildingScripts;
+using ResourceScripts;
+using UnitScripts;
 using UnityEngine;
 
 public class InputManager : MonoBehaviour
 {
+    private static InputManager _instance;
+ 
+    public static InputManager Instance
+    {
+        get
+        {
+            if (_instance) return _instance;
+            _instance = FindObjectOfType(typeof(InputManager)) as InputManager;
+
+            if (_instance != null) return _instance;
+            Debug.LogError("There needs to be one active InputManager script on a GameObject in your scene.");
+            return null;
+        }
+    }
+    
     private readonly LinkedList<Unit> _selectedUnits = new LinkedList<Unit>();
     private bool _firstMove;
     private int _formationIndex;
@@ -14,8 +30,6 @@ public class InputManager : MonoBehaviour
     private Vector3 _lastMoveCommand;
     private float _mouseHoldStart;
     private Vector2 _mouseClickStartPos;
-    private TeamManager _teamManager;
-    public UiManager uiManager;
     private Building _selectedBuilding;
     
     public Unit[] SelectedUnits => _selectedUnits.ToArray();
@@ -24,6 +38,7 @@ public class InputManager : MonoBehaviour
 
     public int unitSelectionLimit;
     public float mouseHoldInterval;
+    private bool _freezeControls = true;
 
     public LayerMask interactiveLayer, terrainLayer;
 
@@ -35,14 +50,11 @@ public class InputManager : MonoBehaviour
     {
         UnitEventManager.StartListening("unitDeath", DeselectFriendlyUnit);
     }
-    
-    private void Start()
-    {
-        _teamManager = GetComponent<TeamManager>();
-    }
-    
+
     private void Update()
     {
+        if (_freezeControls) return;
+        
         if (Input.GetMouseButtonDown(0))
         {
             _mouseHoldStart = Time.time;
@@ -58,10 +70,7 @@ public class InputManager : MonoBehaviour
         }
 
         if (Input.GetMouseButtonUp(0))
-        {   
-            if (!Input.GetKey(KeyCode.LeftControl))
-                DeselectAllUnits();
-            
+        {
             if (_mouseHoldStart + mouseHoldInterval >= Time.time)
                 LeftClick();
             else
@@ -131,6 +140,14 @@ public class InputManager : MonoBehaviour
         foreach (var selectedUnit in _selectedUnits)
         {
             selectedUnit.GatherResource(resource);
+        }
+    }
+
+    private void RepairBuilding(Building building)
+    {
+        foreach (var selectedUnit in _selectedUnits)
+        {
+            selectedUnit.RepairBuilding(building);
         }
     }
 
@@ -288,8 +305,18 @@ public class InputManager : MonoBehaviour
         }
     }
 
+    private void AttackEnemy(Building targetBuilding)
+    {
+        foreach (var selectedUnit in _selectedUnits)
+        {
+            selectedUnit.Attack(targetBuilding);
+        }
+    }
+
     private void LeftClick()
-    {   
+    {
+        if (!Input.GetKey(KeyCode.LeftControl))
+            DeselectAllUnits();
         var raycastResults = new RaycastHit[10];
 
         var hits = Physics.RaycastNonAlloc(gameCamera.ScreenPointToRay(Input.mousePosition),
@@ -308,7 +335,7 @@ public class InputManager : MonoBehaviour
 
                 if (!selectedUnit) continue;
 
-                if (selectedUnit.teamId != _teamManager.teamId)
+                if (selectedUnit.teamId != TeamManager.Instance.teamId)
                 {
                     SelectEnemyUnit(selectedUnit);
                     return;
@@ -320,7 +347,7 @@ public class InputManager : MonoBehaviour
             {
                 SelectResourceNode(hitTransform.GetComponent<ResourceNode>());
             }
-            else if (hit.transform.CompareTag("Building"))
+            else if (hitTransform.CompareTag("Building"))
             {
                 SelectBuilding(hit.transform.GetComponent<Building>());
             }
@@ -329,12 +356,15 @@ public class InputManager : MonoBehaviour
 
     private void HoldLeftClick()
     {
+        if (!Input.GetKey(KeyCode.LeftControl))
+            DeselectAllUnits();
+        CloseBuildingMenu();
         selectionBox.gameObject.SetActive(false);
 
         var min = selectionBox.anchoredPosition - selectionBox.sizeDelta / 2;
         var max = selectionBox.anchoredPosition + selectionBox.sizeDelta / 2;
 
-        foreach (var teamUnit in _teamManager.GetTeamUnits())
+        foreach (var teamUnit in TeamManager.Instance.GetTeamUnits())
         {
             var screenPos = gameCamera.WorldToScreenPoint(teamUnit.transform.position);
 
@@ -346,18 +376,23 @@ public class InputManager : MonoBehaviour
 
     private void RightClick()
     {
+        CloseBuildingMenu();
+        
         if (_selectedUnits.Count <= 0) return;
+        if (_selectedUnits.Count == 1)
+            if (_selectedUnits.First.Value.teamId != TeamManager.Instance.teamId)
+                return;
+
         if (!Physics.Raycast(gameCamera.ScreenPointToRay(Input.mousePosition), out var hit, 120f)) return;
         if (1 << hit.collider.gameObject.layer != terrainLayer)
         {
             var targetHit = hit.transform;
-            if (targetHit.CompareTag("Unit") || targetHit.CompareTag("Building"))
+            if (targetHit.CompareTag("Unit"))
             {
-                var targetUnit = targetHit.GetComponent<Unit>();
+                var unit = targetHit.GetComponent<Unit>();
+                if (unit.teamId == TeamManager.Instance.teamId) return;
 
-                if (!targetUnit) return;
-
-                AttackEnemy(targetUnit);
+                AttackEnemy(unit);
             }
             else if (targetHit.CompareTag("Resource"))
             {
@@ -369,6 +404,16 @@ public class InputManager : MonoBehaviour
                 if (!targetResource) return;
                 
                 GatherResource(targetResource);
+            }
+            else if (targetHit.CompareTag("Building"))
+            {
+                var building = targetHit.GetComponent<Building>();
+                if (building.teamId == TeamManager.Instance.teamId)
+                {
+                    RepairBuilding(building);
+                }
+
+                AttackEnemy(building);
             }
         }
         else
@@ -389,7 +434,8 @@ public class InputManager : MonoBehaviour
     private void SelectEnemyUnit(Unit selectedUnit)
     {
         DeselectAllUnits();
-        // ShowUnitUI(selectedUnit);
+        ToggleUnitSelect(selectedUnit);
+        // selectedUnit.ToggleSelectionVisual(true);
     }
 
     private void SelectBuilding(Building selectedBuilding)
@@ -429,6 +475,12 @@ public class InputManager : MonoBehaviour
 
     private void DeselectAllUnits()
     {
+        if (_selectedBuilding)
+        {
+            _selectedBuilding.ToggleSelectionVisual(false);
+            _selectedBuilding = null;
+        }
+
         foreach (var selectedUnit in _selectedUnits) selectedUnit.ToggleSelectionVisual(false);
         _selectedUnits.Clear();
         _firstMove = false;
@@ -458,6 +510,17 @@ public class InputManager : MonoBehaviour
 
     private void OpenBuildingMenu()
     {
-        uiManager.ShowBuildingMenu();
+        UiManager.Instance.ShowBuildingMenu();
+    }
+
+    private void CloseBuildingMenu()
+    {
+        UiManager.Instance.HideBuildingMenu();
+    }
+
+    public void FreezeControls(bool freeze)
+    {
+        gameCamera.GetComponent<CameraController>().freezeCamera = freeze;
+        _freezeControls = freeze;
     }
 }
